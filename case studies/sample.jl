@@ -24,6 +24,11 @@ df[!, :"\ufeffdate"] = Date.(df[!, :"\ufeffdate"], Dates.DateFormat("u d, yyyy")
 df[!,:"years"] = year.(df[!,:"\ufeffdate"])
 df[!,:"months"] = month.(df[!,:"\ufeffdate"])
 df[!,:"weeks"] = week.(df[!,:"\ufeffdate"])
+
+df[!, :years] = convert.(Float32, df[!, :years])
+df[!, :months] = convert.(Float32, df[!, :months])
+df[!, :weeks] = convert.(Float32, df[!, :weeks])
+
 X_train = Array(first(df[!, [:years,:months,:weeks]], Int(nrow(df)*0.75)))'
 X_test = last(df[!, [:years,:months,:weeks]], Int(nrow(df)*0.25))
 y_train = Array(first(df[!, :weekly__dollars_per_gallon], Int(nrow(df)*0.75)))'
