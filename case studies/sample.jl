@@ -37,8 +37,13 @@ y_test = last(df[!, :weekly__dollars_per_gallon], Int(nrow(df)*0.25))
 train_loader = Flux.Data.DataLoader((X_train, y_train), shuffle=true);
 test_loader = Flux.Data.DataLoader((data=X_test, label=y_test), batchsize=64, shuffle=true);
 first(train_loader, 10)
-model = GRU(3 => 1)
-#model = Dense(3 => 1)
+model = Chain(
+	GRU(3 => 5),
+	GRU(5 => 10),
+	Dropout(0.3)
+	GRU(10 => 2),
+	Dense(2 => 1)
+)
 print(model)
 optim = Flux.setup(Adam(0.01), model)
 losses = []
