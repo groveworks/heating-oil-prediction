@@ -3,6 +3,7 @@ using DataFrames
 using DelimitedFiles
 using Dates
 using Flux
+using BSON: @save
 
 """
 Load CSV data into a DataFrame.
@@ -52,4 +53,5 @@ for epoch in 1:10
         push!(losses, loss)
     end
 end
-optim
+
+@save "../mymodel.bson" model
