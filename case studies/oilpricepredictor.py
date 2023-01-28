@@ -8,17 +8,16 @@ from pathlib import Path
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 def main():
-    file = Path("data/ctoilpricesfeats.csv")
+    file = Path("data/monthly-heating-oil-price.csv")
     if file.is_file():
-        df = pd.read_csv("data/heating oil prices.csv")
+        df = pd.read_csv("data/monthly-heating-oil-price.csv")
         df['date'] = pd.to_datetime(df['date'])
-        df['days'] = pd.DatetimeIndex(df['date']).day
         df['months'] = pd.DatetimeIndex(df['date']).month
         df['years'] = pd.DatetimeIndex(df['date']).year
         dff = df.drop(columns=['date'])
-        dff.to_csv("data/ctoilpricesfeats.csv", index=False)
+        dff.to_csv("data/mhoprice.csv", index=False)
     else:
-        dff = pd.read_csv("data/ctoilpricesfeats.csv")
+        dff = pd.read_csv("data/mhoprice.csv")
     Xy = np.array(dff)
     scaler = MinMaxScaler().fit(Xy)
     Xyt = scaler.transform(Xy)
@@ -30,22 +29,35 @@ def main():
         v = Xyt[i:i+look_back]
         Xs.append(v)
         ys.append(Xyt[i+look_back])
+    Xs = np.array(Xs)
+    ys = np.array(ys)
     # Design the machine learning algorithm
+    xsize = Xs.shape
+    ysize = ys.shape
+    X_train = Xs[:round(0.75*xsize[0])]
+    X_test = Xs[:round(0.25*xsize[0])]
+    y_train = ys[:round(0.75*ysize[0])]
+    y_test = ys[:round(0.25*ysize[0])]
+    
     model = SimpPredictor(64)
-    model.compile(optimizer='Adam', loss='mse', metrics=['accuracy'])
-    dataset = tf.data.Dataset.from_tensor_slices((Xs, ys)).batch(16)
+    model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.01), loss='mse', metrics=['accuracy'])
+    dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(16)
+    testset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(1)
     model.fit(dataset, epochs=100, shuffle=False)
+    evaluation = model.evaluate(testset, return_dict=True)
+    for name, value in evaluation.items():
+        print(f"{name}: {value:.4f}")
 
 class SimpPredictor(tf.keras.models.Model):
     def __init__(self, in_dims):
         super().__init__(self)
         self.l1 = layers.GRU(in_dims, return_sequences=True)
-        self.l2 = layers.GRU(64, return_sequences=True)
-        self.l3 = layers.Dropout(0.2)
-        self.l4 = layers.GRU(32, return_sequences=True)
-        self.l5 = layers.Dense(16)
-        self.l6 = layers.Dense(8)
-        self.l6 = layers.Dense(1)
+        self.l2 = layers.GRU(1_460, return_sequences=True)
+        self.l3 = layers.Dropout(0.3)
+        self.l4 = layers.GRU(940)
+        self.l5 = layers.Dense(80)
+        self.l6 = layers.Dense(3)
+        self.l7 = layers.Dense(1)
     
     def call(self, inputs):
         x = inputs
@@ -55,6 +67,7 @@ class SimpPredictor(tf.keras.models.Model):
         x = self.l4(x)
         x = self.l5(x)
         x = self.l6(x)
+        x = self.l7(x)
         return x
 
 
